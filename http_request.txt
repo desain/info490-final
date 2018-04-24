@@ -1,0 +1,10 @@
+GET /1.1/search/tweets.json?q=nasa HTTP/1.1
+Connection: close
+Authorization: OAuth realm="Example",
+    oauth_consumer_key="*******",
+    oauth_token="*******",
+    oauth_signature_method="HMAC-SHA1",
+    oauth_signature="*****",
+    oauth_timestamp="123456",
+    oauth_nonce="apr24a",
+    oauth_version="1.0"
