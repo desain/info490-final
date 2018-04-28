@@ -23,6 +23,7 @@ const char* ssid = "ND";
 const char* password = "ooooiiii";
 
 const char* host = "tmaalny5b1.execute-api.us-east-1.amazonaws.com";
+String url = "/prod/info490-proxy";
 const int httpsPort = 443;
 
 // Use web browser to view and copy
@@ -33,22 +34,41 @@ void setup() {
   Serial.begin(115200);
   Serial.println();
   Serial.print("connecting to ");
-  Serial.println(ssid);
+  Serial.print(ssid);
+  Serial.print(' ');
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
+  Serial.print(" connected w/ IP ");
   Serial.println(WiFi.localIP());
+}
+
+void sendFact(char *fact) {
+  Serial.print('\02');
+  Serial.print(fact);
+  Serial.print('\03');
+}
+void sendFact(String fact) {
+  sendFact(fact.c_str());
+}
+
+void loop() {
+  if (Serial.available() == 0) {
+    return;
+  }
+  if (Serial.read() != '\07') {
+    sendFact("Cats hate when the trigger is not an ASCII bell character");
+    //return;
+  }
 
   // Use WiFiClientSecure class to create TLS connection
   WiFiClientSecure client;
   Serial.print("connecting to ");
-  Serial.println(host);
+  Serial.print(host);
+  Serial.print(' ');
   if (!client.connect(host, httpsPort)) {
     Serial.println("connection failed");
     return;
@@ -60,22 +80,26 @@ void setup() {
     Serial.println("certificate doesn't match");
   }
 
-  String url = "/prod/info490-proxy";
-  Serial.print("requesting URL: ");
-  Serial.println(url);
-
   client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-               "Host: " + host + "\r\n" +
-               "User-Agent: BuildFailureDetectorESP8266\r\n" +
+               "Host: " + host + "\r\n"
+               "User-Agent: ESP8266\r\n"
                "Connection: close\r\n\r\n");
 
   Serial.println("request sent");
-  while (client.connected()) {
+  bool readingHeaders = true;
+  while (readingHeaders) {
+    if (!client.connected()) {
+      sendFact("Cats hate when their WiFi connection is dropped");
+    }
     String line = client.readStringUntil('\n');
     Serial.println(line);
+    if (line == "\r") readingHeaders = false;
   }
-  Serial.println("=========== DISCONNECTED ===========");
-}
-
-void loop() {
+  Serial.println("Finished headers");
+  Serial.print('\02');
+  while (client.connected()) {
+    Serial.print((char)client.read());
+  }
+  Serial.print('\03');
+  Serial.println("done!");
 }
