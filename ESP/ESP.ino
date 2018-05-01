@@ -19,8 +19,11 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
 
-const char* ssid = "ND";
-const char* password = "ooooiiii";
+char const PRE_FACT = '+';
+char const POST_FACT = '+';
+
+const char* ssid = "IllinoisNet_Guest";//"ND";
+const char* password = "";//"ooooiiii";
 
 const char* host = "tmaalny5b1.execute-api.us-east-1.amazonaws.com";
 String url = "/prod/info490-proxy";
@@ -31,7 +34,7 @@ const int httpsPort = 443;
 const char* fingerprint = "35 85 74 EF 67 35 A7 CE 40 69 50 F3 C0 F6 80 CF 80 3B 2E 19";
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(4800);
   Serial.println();
   Serial.print("connecting to ");
   Serial.print(ssid);
@@ -47,9 +50,9 @@ void setup() {
 }
 
 void sendFact(char *fact) {
-  Serial.print('\02');
+  Serial.print(PRE_FACT);
   Serial.print(fact);
-  Serial.print('\03');
+  Serial.print(POST_FACT);
 }
 void sendFact(String fact) {
   sendFact(fact.c_str());
@@ -59,10 +62,7 @@ void loop() {
   if (Serial.available() == 0) {
     return;
   }
-  if (Serial.read() != '\07') {
-    sendFact("Cats hate when the trigger is not an ASCII bell character");
-    //return;
-  }
+  Serial.read(); //just read anything as the signal to find a fact
 
   // Use WiFiClientSecure class to create TLS connection
   WiFiClientSecure client;
@@ -96,10 +96,13 @@ void loop() {
     if (line == "\r") readingHeaders = false;
   }
   Serial.println("Finished headers");
-  Serial.print('\02');
+  Serial.print(PRE_FACT);
   while (client.connected()) {
-    Serial.print((char)client.read());
+    char c = client.read();
+    if (isAscii(c)) {
+      Serial.print(c);
+    }
   }
-  Serial.print('\03');
+  Serial.print(POST_FACT);
   Serial.println("done!");
 }
