@@ -1,15 +1,30 @@
 #include <LiquidCrystal_I2C.h>
 
-//LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
-LiquidCrystal_I2C lcd(0x3F);
+LiquidCrystal_I2C lcd(0x3f, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE); 
+
 
 void setup() {
-  // put your setup code here, to run once:
-  lcd.begin(16,2);
+  Serial.begin(9600);
+  lcd.begin(16, 1);
+  lcd.home();
   lcd.clear();
-  lcd.print("HI");
+  lcd.noBlink();
+  lcd.noCursor();
+  lcd.display();
+
+  lcd.setCursor(16,1); //have to do this before autoscroll
+  lcd.autoscroll();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  static int l = 0;
+  char c = (char)('a'+l++);
+  lcd.print(c);
+  delay(333);
+  if (l == 26) {
+    l = 0;
+    lcd.clear();
+    lcd.setCursor(16,1);
+    delay(666);
+  }
 }
