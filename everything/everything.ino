@@ -1,6 +1,6 @@
 #include <SoftwareSerial.h>
-#include <CapacitiveSensor.h>
-#include <LiquidCrystal_I2C.h>
+#include <CapacitiveSensor.h> //https://github.com/PaulStoffregen/CapacitiveSensor
+#include <LiquidCrystal_I2C.h> //https://bitbucket.org/fmalpartida/new-liquidcrystal/downloads/
 #include <PCM.h>
 
 const unsigned char sample[] PROGMEM = {
@@ -14,9 +14,11 @@ int const rxFromEsp = 5;
 int const txToEsp = 6;
 SoftwareSerial esp{rxFromEsp, txToEsp};
 
-CapacitiveSensor touchSensor{4,8};
-int const touchSensorResolution = 30;
-int const threshold = 1000;
+int const sensorOutput = 4;
+int const sensorInput = 8;
+CapacitiveSensor touchSensor{sensorOutput, sensorInput};
+int const touchSensorSamples = 30;
+int const threshold = 500;
 
 LiquidCrystal_I2C lcd(0x3f, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE); 
 
@@ -28,7 +30,7 @@ enum class State {
   WaitingForTouch,
   WaitingForResponse,
   ReadingFact,
-} state = State::WaitingForTouch;
+} state;
 
 void setup() {
   esp.begin(4800);
@@ -39,15 +41,21 @@ void setup() {
   lcd.noBlink();
   lcd.noCursor();
   lcd.display();
-  lcd.setCursor(16,1);
-  lcd.autoscroll();
-  Serial.println("up");
+  setupForTouch();
+}
+
+void setupForTouch() {
+  lcd.clear();
+  lcd.setCursor(4,1);
+  lcd.noAutoscroll();
+  lcd.print("Boop me!");
+  state = State::WaitingForTouch;
 }
 
 void loop() {
   switch(state) {
   case State::WaitingForTouch:
-    if (touchSensor.capacitiveSensor(touchSensorResolution) > threshold) {
+    if (touchSensor.capacitiveSensor(touchSensorSamples) > threshold) {
       state = State::WaitingForResponse;
       startPlayback(sample, sizeof(sample));
       esp.print('\07');
@@ -62,14 +70,15 @@ void loop() {
   case State::ReadingFact:
     int factLength = esp.readBytesUntil(POST_FACT, factBuffer, MAX_FACT_LENGTH);
     factBuffer[factLength] = '\0';
+    lcd.clear();
+    lcd.setCursor(16,1);
+    lcd.autoscroll();
     for (int i = 0; i < factLength; i++) {
       lcd.print(factBuffer[i]);
       delay(200);
     }
     delay(1000);
-    lcd.clear();
-    lcd.setCursor(16,1);
-    state = State::WaitingForTouch;
+    setupForTouch();
     break;
   }
 }
